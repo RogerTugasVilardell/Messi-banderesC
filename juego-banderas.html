@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juego de banderas: ¿Messi o Cristiano Ronaldo?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --messi: #0E97B7;
+      --messi-soft: #E1F3F7;
+      --cristiano: #CE2B37;
+      --cristiano-soft: #FBE6E8;
+      --neutral: #8B95A1;
+      --neutral-soft: #EEF1F4;
+      --dark: #252552;
+      --surface: #FFFFFF;
+      --ink: #1A1C1F;
+      --ink-soft: #50575E;
+      --line: #E4E2DC;
+      --font-head: 'Archivo', system-ui, sans-serif;
+      --font-body: 'Source Serif 4', Georgia, serif;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 1.18rem;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { max-width: 100%; display: block; }
+
+    .fg { margin: 0; }
+    .fg__hint {
+      font-family: var(--font-head);
+      font-size: 1.2rem;
+      color: var(--ink-soft);
+      margin: 0 0 1.25rem;
+      text-align: center;
+    }
+    .fg__pool {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      justify-content: center;
+      min-height: 88px;
+      padding: 1rem;
+      border: 2px dashed var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      margin-bottom: 1.5rem;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .fg__ball {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      width: 72px;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    .fg__flag {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+      border: 2px solid #fff;
+      outline: 1px solid var(--line);
+      transition: transform 0.12s;
+    }
+    .fg__name {
+      font-family: var(--font-head);
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+    .fg__ball:active .fg__flag { transform: scale(1.05); }
+    .fg__ball--lifted { opacity: 0.35; }
+    .fg__ball--ghost {
+      position: fixed;
+      z-index: 999;
+      pointer-events: none;
+      margin: 0;
+      cursor: grabbing;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
+    }
+
+    .fg__drawers {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+    .fg__drawer {
+      border: 3px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 0.75rem;
+      min-height: 150px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .fg__drawer--messi { border-color: var(--messi); }
+    .fg__drawer--cap   { border-color: var(--neutral); }
+    .fg__drawer--cr7   { border-color: var(--cristiano); }
+    .fg__drop-active { background: var(--neutral-soft); border-color: var(--ink); }
+
+    .fg__drawer-head {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      margin-bottom: 0.75rem;
+      text-align: center;
+    }
+    .fg__drawer-name {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 1.2rem;
+      line-height: 1.1;
+    }
+    .fg__count {
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+      background: var(--neutral-soft);
+      padding: 1px 8px;
+      border-radius: 999px;
+    }
+    .fg__count--full { color: #fff; background: var(--ink); }
+    .fg__slots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      justify-content: center;
+    }
+
+    .fg__controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+      margin: 1.5rem 0 0;
+    }
+    .fg__btn {
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 0.65rem 1.4rem;
+      border-radius: 999px;
+      border: 2px solid var(--ink);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, opacity 0.15s;
+    }
+    .fg__btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .fg__btn--check  { background: var(--ink); color: #fff; }
+    .fg__btn--reset  { background: transparent; color: var(--ink); }
+    .fg__btn--reset:hover:enabled { background: var(--neutral-soft); }
+    .fg__btn--reveal { background: transparent; color: var(--ink); border-style: dashed; }
+    .fg__btn--reveal:hover:enabled { background: var(--neutral-soft); }
+
+    .fg__result {
+      margin-top: 1.25rem;
+      text-align: center;
+      font-family: var(--font-head);
+      font-size: 1.05rem;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .fg__result--show { opacity: 1; transform: none; }
+    .fg__score { font-weight: 900; font-size: 1.4rem; display: block; }
+
+    .fg__ball--ok .fg__flag { border-color: #fff; outline: none; box-shadow: 0 0 0 5px #15a657; }
+    .fg__ball--ko .fg__flag { border-color: #fff; outline: none; box-shadow: 0 0 0 5px var(--cristiano); }
+
+    @media (max-width: 640px) {
+      .fg__ball  { width: 60px; }
+      .fg__flag  { width: 44px; height: 44px; }
+      .fg__name  { font-size: 0.66rem; }
+      .fg__drawers { gap: 0.4rem; }
+      .fg__drawer  { padding: 0.5rem 0.35rem; }
+    }
+  </style>
+</head>
+<body>
+  <div id="flag-game" class="fg"></div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    var BASE = 'https://messi-cristiano-ronaldo-politica.periodismededades.cat/assets/';
+
+    var COUNTRIES = [
+      { code: 'kr', name: 'Corea del Sur',  answer: 'messi' },
+      { code: 'ar', name: 'Argentina',       answer: 'messi' },
+      { code: 'fi', name: 'Finlandia',       answer: 'messi' },
+      { code: 'es', name: 'España',          answer: 'messi' },
+      { code: 'gb', name: 'Reino Unido',     answer: 'messi' },
+      { code: 'no', name: 'Noruega',         answer: 'messi' },
+      { code: 'us', name: 'Estados Unidos',  answer: 'messi' },
+      { code: 'ca', name: 'Canadá',          answer: 'messi' },
+      { code: 'za', name: 'Sudáfrica',       answer: 'cap'   },
+      { code: 'jp', name: 'Japón',           answer: 'cap'   },
+      { code: 'ph', name: 'Filipinas',       answer: 'cap'   },
+      { code: 'br', name: 'Brasil',          answer: 'cap'   },
+      { code: 'au', name: 'Australia',       answer: 'cap'   },
+      { code: 'de', name: 'Alemania',        answer: 'cap'   },
+      { code: 'nl', name: 'Países Bajos',    answer: 'cap'   },
+      { code: 'ng', name: 'Nigeria',         answer: 'cr7'   },
+      { code: 'in', name: 'India',           answer: 'cr7'   },
+      { code: 'fr', name: 'Francia',         answer: 'cr7'   },
+      { code: 'cn', name: 'China',           answer: 'cr7'   },
+      { code: 'sg', name: 'Singapur',        answer: 'cr7'   },
+      { code: 'pt', name: 'Portugal',        answer: 'cr7'   },
+      { code: 'my', name: 'Malasia',         answer: 'cr7'   },
+      { code: 'eg', name: 'Egipto',          answer: 'cr7'   },
+      { code: 'mx', name: 'México',          answer: 'cr7'   },
+      { code: 'tr', name: 'Turquía',         answer: 'cr7'   },
+      { code: 'id', name: 'Indonesia',       answer: 'cr7'   }
+    ];
+
+    var TARGETS    = { messi: 8, cap: 7, cr7: 11 };
+    var ZONE_LABEL = { messi: 'Leo Messi', cap: 'Sin preferencia', cr7: 'Cristiano Ronaldo' };
+
+    var root = document.getElementById('flag-game');
+    if (!root) return;
+
+    var state    = {};
+    var reviewed = false;
+    var revealed = false;
+    var dragging = null;
+
+    function el(tag, className, html) {
+      var node = document.createElement(tag);
+      if (className) node.className = className;
+      if (html != null) node.innerHTML = html;
+      return node;
+    }
+
+    function shuffle(arr) {
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = a[i]; a[i] = a[j]; a[j] = t;
+      }
+      return a;
+    }
+
+    function build() {
+      root.innerHTML = '';
+      reviewed = false;
+      revealed = false;
+      state    = {};
+
+      var pool = el('div', 'fg__pool');
+      pool.id = 'fg-pool';
+      pool.setAttribute('data-zone', 'pool');
+      root.appendChild(pool);
+
+      var drawers = el('div', 'fg__drawers');
+      ['messi', 'cap', 'cr7'].forEach(function (zone) {
+        var d    = el('div', 'fg__drawer fg__drawer--' + zone);
+        d.setAttribute('data-zone', zone);
+        var head = el('div', 'fg__drawer-head');
+        head.innerHTML =
+          '<span class="fg__drawer-name">' + ZONE_LABEL[zone] + '</span>' +
+          '<span class="fg__count" id="fg-count-' + zone + '">0/' + TARGETS[zone] + '</span>';
+        var slot = el('div', 'fg__slots');
+        slot.id = 'fg-slot-' + zone;
+        d.appendChild(head);
+        d.appendChild(slot);
+        drawers.appendChild(d);
+      });
+      root.appendChild(drawers);
+
+      var controls  = el('div', 'fg__controls');
+      var checkBtn  = el('button', 'fg__btn fg__btn--check',  'Comprobar respuestas');
+      checkBtn.id   = 'fg-check';
+      checkBtn.type = 'button';
+      checkBtn.disabled = true;
+      var resetBtn  = el('button', 'fg__btn fg__btn--reset',  'Volver a empezar');
+      resetBtn.id   = 'fg-reset';
+      resetBtn.type = 'button';
+      var revealBtn = el('button', 'fg__btn fg__btn--reveal', 'Mostrar respuestas correctas');
+      revealBtn.id  = 'fg-reveal';
+      revealBtn.type = 'button';
+      controls.appendChild(checkBtn);
+      controls.appendChild(resetBtn);
+      controls.appendChild(revealBtn);
+      root.appendChild(controls);
+
+      var result = el('div', 'fg__result');
+      result.id  = 'fg-result';
+      result.setAttribute('aria-live', 'polite');
+      root.appendChild(result);
+
+      shuffle(COUNTRIES).forEach(function (c) {
+        state[c.code] = 'pool';
+        pool.appendChild(makeBall(c));
+      });
+
+      checkBtn.addEventListener('click',  review);
+      resetBtn.addEventListener('click',  build);
+      revealBtn.addEventListener('click', showAnswers);
+      updateCounts();
+    }
+
+    function makeBall(c) {
+      var b = el('div', 'fg__ball');
+      b.setAttribute('data-code',   c.code);
+      b.setAttribute('data-answer', c.answer);
+      b.setAttribute('role',        'button');
+      b.setAttribute('tabindex',    '0');
+      b.setAttribute('aria-label',  c.name);
+      b.innerHTML =
+        '<span class="fg__flag" style="background-image:url(' + BASE + 'flags/' + c.code + '.svg)"></span>' +
+        '<span class="fg__name">' + c.name + '</span>';
+      b.addEventListener('pointerdown', onPointerDown);
+      return b;
+    }
+
+    function onPointerDown(e) {
+      if (reviewed) return;
+      e.preventDefault();
+      var ball = e.currentTarget;
+      var rect = ball.getBoundingClientRect();
+      var ghost = ball.cloneNode(true);
+      ghost.classList.add('fg__ball--ghost');
+      ghost.style.width = rect.width + 'px';
+      document.body.appendChild(ghost);
+      dragging = { ball: ball, ghost: ghost, offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top };
+      ball.classList.add('fg__ball--lifted');
+      moveGhost(e.clientX, e.clientY);
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup',   onPointerUp);
+    }
+
+    function moveGhost(x, y) {
+      dragging.ghost.style.left = (x - dragging.offsetX) + 'px';
+      dragging.ghost.style.top  = (y - dragging.offsetY) + 'px';
+    }
+
+    function onPointerMove(e) {
+      if (!dragging) return;
+      moveGhost(e.clientX, e.clientY);
+      highlightZone(zoneUnder(e.clientX, e.clientY));
+    }
+
+    function onPointerUp(e) {
+      if (!dragging) return;
+      var zoneEl = zoneUnder(e.clientX, e.clientY);
+      if (zoneEl) moveBallTo(dragging.ball, zoneEl.getAttribute('data-zone'));
+      cleanupDrag();
+    }
+
+    function cleanupDrag() {
+      if (!dragging) return;
+      dragging.ball.classList.remove('fg__ball--lifted');
+      if (dragging.ghost.parentNode) dragging.ghost.parentNode.removeChild(dragging.ghost);
+      clearHighlights();
+      dragging = null;
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup',   onPointerUp);
+    }
+
+    function zoneUnder(x, y) {
+      if (dragging) dragging.ghost.style.display = 'none';
+      var target = document.elementFromPoint(x, y);
+      if (dragging) dragging.ghost.style.display = '';
+      while (target && target !== document.body) {
+        if (target.hasAttribute && target.hasAttribute('data-zone')) return target;
+        target = target.parentNode;
+      }
+      return null;
+    }
+
+    function highlightZone(zoneEl) {
+      clearHighlights();
+      if (zoneEl) zoneEl.classList.add('fg__drop-active');
+    }
+    function clearHighlights() {
+      var act = root.querySelectorAll('.fg__drop-active');
+      for (var i = 0; i < act.length; i++) act[i].classList.remove('fg__drop-active');
+    }
+
+    function moveBallTo(ball, zone) {
+      var code = ball.getAttribute('data-code');
+      state[code] = zone;
+      var container = zone === 'pool'
+        ? document.getElementById('fg-pool')
+        : document.getElementById('fg-slot-' + zone);
+      container.appendChild(ball);
+      updateCounts();
+    }
+
+    function updateCounts() {
+      var counts = { messi: 0, cap: 0, cr7: 0, pool: 0 };
+      Object.keys(state).forEach(function (code) { counts[state[code]]++; });
+      ['messi', 'cap', 'cr7'].forEach(function (zone) {
+        var node = document.getElementById('fg-count-' + zone);
+        if (node) {
+          node.textContent = counts[zone] + '/' + TARGETS[zone];
+          node.classList.toggle('fg__count--full', counts[zone] === TARGETS[zone]);
+        }
+      });
+      var checkBtn = document.getElementById('fg-check');
+      if (checkBtn) checkBtn.disabled = counts.pool > 0 || reviewed || revealed;
+    }
+
+    function review() {
+      reviewed = true;
+      var correct = 0;
+      var balls   = root.querySelectorAll('.fg__ball');
+      for (var i = 0; i < balls.length; i++) {
+        var ball = balls[i];
+        var code = ball.getAttribute('data-code');
+        var ok   = state[code] === ball.getAttribute('data-answer');
+        ball.classList.add(ok ? 'fg__ball--ok' : 'fg__ball--ko');
+        if (ok) correct++;
+      }
+      var result = document.getElementById('fg-result');
+      result.innerHTML = '<span class="fg__score">' + correct + '/26</span> ' + encerts(correct);
+      result.classList.add('fg__result--show');
+      document.getElementById('fg-check').disabled = true;
+      result.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    function showAnswers() {
+      reviewed = true;
+      revealed = true;
+      var balls = Array.prototype.slice.call(root.querySelectorAll('.fg__ball'));
+      balls.forEach(function (ball) {
+        ball.classList.remove('fg__ball--ok', 'fg__ball--ko');
+        moveBallTo(ball, ball.getAttribute('data-answer'));
+      });
+      document.getElementById('fg-reveal').disabled = true;
+      var result = document.getElementById('fg-result');
+      result.innerHTML = '<span class="fg__score">Solución</span> Estas son las preferencias reales de cada país, según el estudio.';
+      result.classList.add('fg__result--show');
+      updateCounts();
+      result.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    function encerts(n) {
+      if (n === 26) return '¡Perfecto! Conoces el mapa Messi–Cristiano Ronaldo mejor que nadie.';
+      if (n >= 20)  return '¡Muy bien! Tienes una intuición excelente.';
+      if (n >= 14)  return 'Nada mal: más de la mitad acertados.';
+      if (n === 13) return 'Exactamente la mitad acertada.';
+      return 'Las preferencias por país esconden más sorpresas de lo que parece. ¡Mira los datos!';
+    }
+
+    build();
+  })();
+  </script>
+  <script>
+    (function () {
+      function send() {
+        var h = document.body.scrollHeight;
+        if (h > 0) { window.parent.postMessage({ height: h }, '*'); }
+      }
+      window.addEventListener('load', function () {
+        [0, 1000, 2500, 5000].forEach(function (d) { setTimeout(send, d); });
+      });
+      var el = document.body.firstElementChild;
+      if (el && window.ResizeObserver) new ResizeObserver(send).observe(el);
+    })();
+  </script>
+</body>
+</html>
